@@ -36,6 +36,24 @@ export async function POST(request: NextRequest) {
     }
     
     const supabase = await createClient()
+
+    // Ensure a user profile exists in the `users` table for this auth user.
+    // Some flows (like creating an org) previously assumed a profile row
+    // already existed which caused the dashboard to show "Profile not found".
+    const { data: existingProfile } = await supabase
+      .from('users')
+      .select('id')
+      .eq('auth_user_id', user.id)
+      .single()
+
+    if (!existingProfile) {
+      // Insert a minimal profile linking the auth user. Other fields can be
+      // updated later via the profile editor.
+      await supabase.from('users').insert({
+        auth_user_id: user.id,
+        email: user.email || null,
+      })
+    }
     
     // Create organization
     const { data: org, error: orgError } = await supabase

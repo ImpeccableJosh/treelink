@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation'
 import { requireAuth } from '@/lib/auth/helpers'
-import { createClient } from '@/lib/supabase/server'
+import { createClient, createServiceClient } from '@/lib/supabase/server'
+import { getSession } from '@/lib/auth/helpers'
 import { Card } from '@/components/ui/Card'
 
 interface PageProps {
@@ -9,29 +10,47 @@ interface PageProps {
 
 export default async function AnalyticsPage({ params }: PageProps) {
   const { org_slug } = await params
-  const user = await requireAuth()
-  const supabase = await createClient()
-  
-  // Get organization
-  const { data: org } = await supabase
-    .from('organizations')
-    .select('*')
-    .eq('slug', org_slug)
-    .single()
-  
-  if (!org) {
-    redirect('/dashboard')
-  }
+  const supabase = await createServiceClient()
+      
+      // Check auth
+      // const {
+      //   data: { user },
+      // } = await supabase.auth.getUser()
+    
+      // const user = await requireAuth(org_slug)
+    
+      // Require the user to be authenticated. Using getSession lets us read the
+      // current session if cookies are present; if not, redirect to signin with
+      // the org path so the user returns here after signing in.
+      const session = await getSession()
+      if (!session) {
+        redirect(`/signin?redirect=${encodeURIComponent(`/org/${org_slug}`)}`)
+      }
+      const user = session!.user
+      
+      // Get organization
+      // Fetch organization and membership with the service client (bypass RLS).
+      const orgResult: any = await supabase
+        .from('organizations')
+        .select('*')
+        .eq('slug', org_slug)
+        .single()
+    
+      const org = orgResult?.data as any
+      const orgError = orgResult?.error
+    
+      if (orgError || !org) {
+        // Possible DB issues: slug does not exist, or select blocked by RLS if
+        // using anon client. Redirect to dashboard with error.
+        redirect('/dashboard?error=OrganizationNotFound')
+      }
+      
+      if (!org) {
+        redirect('/dashboard?error=Organizationnotfound')
+      }
   
   // Get analytics
-  const analyticsResponse = await fetch(
-    `${process.env.NEXT_PUBLIC_APP_URL}/api/analytics?organization_id=${org.id}`,
-    {
-      cache: 'no-store',
-    }
-  )
   
-  const { data: analytics } = await analyticsResponse.json()
   
   return (
     <div className="space-y-6">

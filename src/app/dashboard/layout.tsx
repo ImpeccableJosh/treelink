@@ -24,7 +24,7 @@ export default async function DashboardLayout({
           <div className="flex justify-between h-16">
             <div className="flex items-center">
               <Link href="/dashboard" className="text-xl font-bold text-[#4ECDC4]">
-                Treelink
+                Gather
               </Link>
             </div>
             <div className="flex items-center space-x-4">

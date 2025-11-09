@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation'
 import { getUserProfile } from '@/lib/db/queries'
 import { requireAuth } from '@/lib/auth/helpers'
+import { createClient } from '@/lib/supabase/server'
 import { ProfileEditor } from '@/components/dashboard/ProfileEditor'
 import { Card } from '@/components/ui/Card'
 import Link from 'next/link'
@@ -9,8 +10,26 @@ import { ExternalLink } from 'lucide-react'
 export default async function DashboardPage() {
   const user = await requireAuth()
   const { data: profile } = await getUserProfile(user.id)
+
+  // If no profile exists, create a minimal one so the dashboard can render.
+  // This covers cases where an auth user (e.g. org owner) exists but hasn't
+  // been linked to a `users` row yet.
+  let finalProfile = profile
+  if (!finalProfile) {
+    const supabase = await createClient()
+    // Try inserting a minimal users row. If a race occurs and row already
+    // exists, ignore the error and re-fetch.
+    try {
+      await supabase.from('users').insert({ auth_user_id: user.id, email: user.email || null })
+    } catch (e) {
+      // ignore insertion errors (e.g., unique constraint) and continue
+    }
+
+    const { data: reprofile } = await getUserProfile(user.id)
+    finalProfile = reprofile
+  }
   
-  if (!profile) {
+  if (!finalProfile) {
     return (
       <div className="text-center py-12">
         <p className="text-gray-600">Profile not found. Please contact support.</p>
@@ -18,7 +37,7 @@ export default async function DashboardPage() {
     )
   }
   
-  const cardUrl = `${process.env.NEXT_PUBLIC_APP_URL}/${profile.card_uuid}`
+  const cardUrl = `${process.env.NEXT_PUBLIC_APP_URL}/${finalProfile.card_uuid}`
   
   return (
     <div className="max-w-4xl mx-auto space-y-6">
@@ -47,7 +66,7 @@ export default async function DashboardPage() {
       
       <Card>
         <h2 className="text-xl font-semibold text-gray-900 mb-6">Edit Profile</h2>
-        <ProfileEditor initialProfile={profile} />
+  <ProfileEditor initialProfile={finalProfile} />
       </Card>
     </div>
   )

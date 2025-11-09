@@ -30,7 +30,7 @@ export function VCardDownload({ profile }: VCardDownloadProps) {
       className="w-full flex items-center justify-center gap-2"
     >
       <Download className="w-5 h-5" />
-      Download vCard
+      Contact
     </Button>
   )
 }
