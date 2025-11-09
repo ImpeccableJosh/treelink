@@ -1,36 +1,181 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Treelink
 
-## Getting Started
+Digital business cards with NFC-powered application workflows.
 
-First, run the development server:
+## Features
+
+- **Public Digital Cards**: Linktree-style mobile-friendly profile pages
+- **Owner Claim Flow**: Token-based claiming with magic link authentication
+- **NFC Workflow**: Scan-to-application flow for organizations
+- **Organization Dashboard**: Manage devices, view applications, and analytics
+- **ImageKit Integration**: Avatar and logo storage
+- **Clean Design**: Mint green theme with white backgrounds
+
+## Tech Stack
+
+- Next.js 16 (App Router)
+- TypeScript
+- Supabase (PostgreSQL + Auth)
+- ImageKit.io (Image storage)
+- Tailwind CSS 4
+- Lucide React (Icons)
+
+## Setup
+
+### 1. Install Dependencies
+
+```bash
+npm install
+```
+
+### 2. Environment Variables
+
+Copy `.env.example` to `.env.local` and fill in your credentials:
+
+```bash
+cp .env.example .env.local
+```
+
+Required variables:
+- `NEXT_PUBLIC_SUPABASE_URL` - Your Supabase project URL
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY` - Supabase anonymous key
+- `SUPABASE_SERVICE_ROLE_KEY` - Supabase service role key (for server-side operations)
+- `NEXT_PUBLIC_IMAGEKIT_URL_ENDPOINT` - ImageKit URL endpoint
+- `IMAGEKIT_PUBLIC_KEY` - ImageKit public key
+- `IMAGEKIT_PRIVATE_KEY` - ImageKit private key
+- `NEXT_PUBLIC_APP_URL` - Your app URL (e.g., http://localhost:3000)
+
+### 3. Database Setup
+
+1. Create a new Supabase project
+2. Go to SQL Editor
+3. Run the migration file: `database/migrations/001_initial_schema.sql`
+4. Verify RLS policies are enabled
+
+### 4. Run Development Server
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000) in your browser.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Project Structure
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```
+src/
+├── app/                    # Next.js App Router pages
+│   ├── [card_uuid]/       # Public card pages
+│   ├── dashboard/         # User dashboard
+│   ├── org/               # Organization dashboards
+│   ├── apply/             # Application completion
+│   ├── signin/            # Claim flow
+│   └── api/               # API routes
+├── components/            # React components
+│   ├── ui/               # Base UI components
+│   ├── card/             # Card display components
+│   ├── auth/             # Authentication
+│   ├── dashboard/        # Dashboard components
+│   ├── org/             # Organization components
+│   └── apply/           # Application components
+├── lib/                  # Utilities and helpers
+│   ├── supabase/        # Supabase clients
+│   ├── imagekit/        # ImageKit integration
+│   ├── auth/            # Auth helpers
+│   ├── db/              # Database queries
+│   └── utils/           # Utility functions
+└── types/               # TypeScript types
+```
 
-## Learn More
+## Key Features
 
-To learn more about Next.js, take a look at the following resources:
+### Public Card Pages
+- Accessible at `/{card_uuid}`
+- Mobile-first responsive design
+- Social links (LinkedIn, Instagram, GitHub, Website)
+- vCard download
+- Avatar display
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### Owner Claim Flow
+1. User receives signup token link
+2. Visits `/signin/[token]`
+3. Enters email, receives magic link
+4. Completes authentication
+5. Card is linked to their account
+6. Redirected to dashboard
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+### NFC Workflow
+1. Organization provisions NFC reader device
+2. Device scans card with `card_uuid`
+3. POST to `/api/nfc/scan` with device credentials
+4. Application record created
+5. User receives email with completion link
+6. User completes application
+7. Organization views in dashboard
 
-## Deploy on Vercel
+### Organization Dashboard
+- Overview with key metrics
+- Applications list with filters
+- Device management
+- Analytics dashboard
+- Campaign/application type management
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## API Endpoints
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+### Public
+- `GET /[card_uuid]` - Public card page
+- `POST /api/nfc/scan` - NFC scan endpoint (device auth)
+- `GET /apply/complete?token=...` - Application completion page
+
+### Authenticated (User)
+- `GET /api/profile` - Get user profile
+- `PUT /api/profile` - Update user profile
+- `GET /dashboard` - User dashboard
+
+### Authenticated (Organization)
+- `GET /api/organizations` - List user's orgs
+- `POST /api/organizations` - Create org
+- `GET /api/devices?organization_id=...` - List devices
+- `POST /api/devices` - Create device
+- `GET /api/applications?organization_id=...` - List applications
+- `GET /api/analytics?organization_id=...` - Get analytics
+
+## Security
+
+- Row Level Security (RLS) policies on all tables
+- Device authentication via Bearer tokens
+- Magic link authentication for users
+- Token-based application completion
+- Service key used only for device endpoints
+
+## Development
+
+### Adding New Features
+
+1. Create database migration if needed
+2. Add TypeScript types in `src/types/database.ts`
+3. Create API routes in `src/app/api/`
+4. Build UI components in `src/components/`
+5. Create pages in `src/app/`
+
+### Testing
+
+- Test public card pages with valid UUIDs
+- Test claim flow with signup tokens
+- Test NFC scan endpoint with device secrets
+- Test organization dashboard access
+- Verify RLS policies work correctly
+
+## Deployment
+
+1. Set environment variables in your hosting platform
+2. Run database migrations in Supabase
+3. Build and deploy:
+   ```bash
+   npm run build
+   npm start
+   ```
+
+## License
+
+MIT
